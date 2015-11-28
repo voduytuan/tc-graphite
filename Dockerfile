@@ -1,5 +1,5 @@
 FROM phusion/baseimage:0.9.15
-MAINTAINER Vo Duy Tuan <tuanmaster2012@gmail.com>
+MAINTAINER Nathan Hopkins <natehop@gmail.com>
 
 #RUN echo deb http://archive.ubuntu.com/ubuntu $(lsb_release -cs) main universe > /etc/apt/sources.list.d/universe.list
 RUN apt-get -y update\
@@ -45,6 +45,10 @@ RUN git clone -b 0.9.12 --depth 1 https://github.com/graphite-project/carbon.git
 WORKDIR /usr/local/src/carbon
 RUN python ./setup.py install
 
+# install statsd
+RUN git clone -b v0.7.2 --depth 1 https://github.com/etsy/statsd.git /opt/statsd
+ADD conf/statsd/config.js /opt/statsd/config.js
+
 # config nginx
 RUN rm /etc/nginx/sites-enabled/default
 ADD conf/nginx/nginx.conf /etc/nginx/nginx.conf
@@ -64,6 +68,7 @@ RUN chmod 644 /etc/logrotate.d/graphite
 ADD daemons/carbon.sh /etc/service/carbon/run
 ADD daemons/carbon-aggregator.sh /etc/service/carbon-aggregator/run
 ADD daemons/graphite.sh /etc/service/graphite/run
+ADD daemons/statsd.sh /etc/service/statsd/run
 ADD daemons/nginx.sh /etc/service/nginx/run
 
 # cleanup
@@ -71,7 +76,7 @@ RUN apt-get clean\
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # defaults
-EXPOSE 80:80 2003:2003
-VOLUME ["/opt/graphite", "/etc/nginx", "/etc/logrotate.d", "/var/log"]
+EXPOSE 80:80 2003:2003 8125:8125/udp
+VOLUME ["/opt/graphite", "/etc/nginx", "/opt/statsd", "/etc/logrotate.d", "/var/log"]
 ENV HOME /root
 CMD ["/sbin/my_init"]
